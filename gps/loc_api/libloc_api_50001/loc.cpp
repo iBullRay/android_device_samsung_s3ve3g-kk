@@ -197,7 +197,6 @@ extern "C" const GpsInterface* get_gps_interface()
     switch (gnssType)
     {
     case GNSS_GSS:
-	case GNSS_AUTO:
         //APQ8064
         gps_conf.CAPABILITIES &= ~(GPS_CAPABILITY_MSA | GPS_CAPABILITY_MSB);
         gss_fd = open("/dev/gss", O_RDONLY);
@@ -242,9 +241,8 @@ SIDE EFFECTS
 static int loc_init(GpsCallbacks* callbacks)
 {
     int retVal = -1;
-    unsigned int target = (unsigned int) -1;
+    ENTRY_LOG();
     LOC_API_ADAPTER_EVENT_MASK_T event;
-	ENTRY_LOG();
 
     if (NULL == callbacks) {
         LOC_LOGE("loc_init failed. cb = NULL\n");
@@ -261,15 +259,6 @@ static int loc_init(GpsCallbacks* callbacks)
             LOC_API_ADAPTER_BIT_NMEA_1HZ_REPORT |
             LOC_API_ADAPTER_BIT_NI_NOTIFY_VERIFY_REQUEST;
 
-	target = loc_get_target();
-
-    /*For "auto" platform enable Measurement report and SV Polynomial report*/
-    if(GNSS_AUTO == getTargetGnssType(target))
-    {
-        event |= LOC_API_ADAPTER_BIT_GNSS_MEASUREMENT_REPORT |
-                LOC_API_ADAPTER_BIT_GNSS_SV_POLYNOMIAL_REPORT;
-    }		
-			
     LocCallbacks clientCallbacks = {local_loc_cb, /* location_cb */
                                     callbacks->status_cb, /* status_cb */
                                     local_sv_cb, /* sv_status_cb */
@@ -527,15 +516,15 @@ const GpsGeofencingInterface* get_geofence_interface(void)
     {
         if ((error = dlerror()) != NULL)  {
             LOC_LOGE ("%s, dlopen for libgeofence.so failed, error = %s\n", __func__, error);
-        }
+           }
         goto exit;
     }
     dlerror();    /* Clear any existing error */
     get_gps_geofence_interface = (get_gps_geofence_interface_function)dlsym(handle, "gps_geofence_get_interface");
-    if ((error = dlerror()) != NULL && NULL != get_gps_geofence_interface)  {
+    if ((error = dlerror()) != NULL)  {
         LOC_LOGE ("%s, dlsym for get_gps_geofence_interface failed, error = %s\n", __func__, error);
         goto exit;
-    }
+     }
 
     geofence_interface = get_gps_geofence_interface();
 

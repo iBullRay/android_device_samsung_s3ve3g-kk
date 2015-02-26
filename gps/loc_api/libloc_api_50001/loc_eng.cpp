@@ -45,8 +45,6 @@
 #include <netdb.h>
 #include <time.h>
 
-#include <new>
-
 #include <LocEngAdapter.h>
 
 #include <cutils/sched_policy.h>
@@ -86,8 +84,6 @@
 #define SAP_CONF_FILE            "/etc/sap.conf"
 #endif
 
-#define XTRA1_GPSONEXTRA         "xtra1.gpsonextra.net"
-
 using namespace loc_core;
 
 boolean configAlreadyRead = false;
@@ -123,10 +119,6 @@ static loc_param_s_type loc_parameter_table[] =
   {"LPP_PROFILE",                    &gps_conf.LPP_PROFILE,                    NULL, 'n'},
   {"A_GLONASS_POS_PROTOCOL_SELECT",  &gps_conf.A_GLONASS_POS_PROTOCOL_SELECT,  NULL, 'n'},
   {"SENSOR_PROVIDER",                &sap_conf.SENSOR_PROVIDER,                NULL, 'n'},
-  {"XTRA_VERSION_CHECK",             &gps_conf.XTRA_VERSION_CHECK,             NULL, 'n'},
-  {"XTRA_SERVER_1",                  &gps_conf.XTRA_SERVER_1,                  NULL, 's'},
-  {"XTRA_SERVER_2",                  &gps_conf.XTRA_SERVER_2,                  NULL, 's'},
-  {"XTRA_SERVER_3",                  &gps_conf.XTRA_SERVER_3,                  NULL, 's'}
 };
 
 static void loc_default_parameters(void)
@@ -918,32 +910,11 @@ LocEngReportXtraServer::LocEngReportXtraServer(void* locEng,
     mServers(new char[3*(mMaxLen+1)])
 {
     memset(mServers, 0, 3*(mMaxLen+1));
-
-	// Override modem URLs with uncommented gps.conf urls
-    if( gps_conf.XTRA_SERVER_1[0] != '\0' ) {
-        url1 = &gps_conf.XTRA_SERVER_1[0];
-    }
-    if( gps_conf.XTRA_SERVER_2[0] != '\0' ) {
-        url2 = &gps_conf.XTRA_SERVER_2[0];
-    }
-    if( gps_conf.XTRA_SERVER_3[0] != '\0' ) {
-        url3 = &gps_conf.XTRA_SERVER_3[0];
-    }
-    // copy non xtra1.gpsonextra.net URLs into the forwarding buffer.
-    if( NULL == strcasestr(url1, XTRA1_GPSONEXTRA) ) {
-        strlcpy(cptr, url1, mMaxLen + 1);
-        cptr += mMaxLen + 1;
-    }
-    if( NULL == strcasestr(url2, XTRA1_GPSONEXTRA) ) {
-        strlcpy(cptr, url2, mMaxLen + 1);
-        cptr += mMaxLen + 1;
-    }
-    if( NULL == strcasestr(url3, XTRA1_GPSONEXTRA) ) {
-        strlcpy(cptr, url3, mMaxLen + 1);
-    }
+    strlcpy(mServers, url1, mMaxLen);
+    strlcpy(&(mServers[mMaxLen+1]), url2, mMaxLen);
+    strlcpy(&(mServers[(mMaxLen+1)<<1]), url3, mMaxLen);
     locallog();
 }
-
 void LocEngReportXtraServer::proc() const {
     loc_eng_xtra_data_s_type* locEngXtra =
         &(((loc_eng_data_s_type*)mLocEng)->xtra_module_data);
@@ -1730,9 +1701,7 @@ static int loc_eng_start_handler(loc_eng_data_s_type &loc_eng_data)
        ret_val = loc_eng_data.adapter->startFix();
 
        if (ret_val == LOC_API_ADAPTER_ERR_SUCCESS ||
-           ret_val == LOC_API_ADAPTER_ERR_ENGINE_DOWN ||
-           ret_val == LOC_API_ADAPTER_ERR_PHONE_OFFLINE ||
-           ret_val == LOC_API_ADAPTER_ERR_INTERNAL)
+           ret_val == LOC_API_ADAPTER_ERR_ENGINE_DOWN)
        {
            loc_eng_data.adapter->setInSession(TRUE);
            loc_inform_gps_status(loc_eng_data, GPS_STATUS_SESSION_BEGIN);
@@ -1993,6 +1962,7 @@ static int loc_eng_get_zpp_handler(loc_eng_data_s_type &loc_eng_data)
    GpsLocationExtended locationExtended;
    memset(&locationExtended, 0, sizeof (GpsLocationExtended));
    locationExtended.size = sizeof(locationExtended);
+   memset(&location, 0, sizeof location);
 
    ret_val = loc_eng_data.adapter->getZpp(location.gpsLocation, tech_mask);
   //Mark the location source as from ZPP
