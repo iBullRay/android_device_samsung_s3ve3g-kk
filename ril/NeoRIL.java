@@ -278,7 +278,7 @@ public class NeoRIL extends RIL {
     private void
     dialEmergencyCall(String address, int clirMode, Message result) {
         RILRequest rr;
-		Rlog.v(RILJ_LOG_TAG, "Emergency dial: " + address);
+        Rlog.v(RILJ_LOG_TAG, "Emergency dial: " + address);
 
         rr = RILRequest.obtain(RIL_REQUEST_DIAL_EMERGENCY, result);
         rr.mParcel.writeString(address + "/");

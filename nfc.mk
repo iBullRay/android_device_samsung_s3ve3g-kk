@@ -28,4 +28,4 @@ PRODUCT_PACKAGES += \
     nfc_nci.msm8226 \
     NfcNci \
     Tag \
-	com.android.nfc_extras
+    com.android.nfc_extras
