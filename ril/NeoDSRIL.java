@@ -77,12 +77,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Random;
 
 /**
- * RIL customization for GT-I9300I device
+ * RIL customization for S3 Duos device
  *
  * {@hide}
  */
 public class NeoDSRIL extends RIL implements CommandsInterface {
-
     private static final int RIL_REQUEST_DIAL_EMERGENCY = 10016;
     private static final int RIL_UNSOL_RESPONSE_IMS_NETWORK_STATE_CHANGED = 1036;
     private static final int RIL_UNSOL_DEVICE_READY_NOTI = 11008;
@@ -93,14 +92,10 @@ public class NeoDSRIL extends RIL implements CommandsInterface {
     private static final int RIL_UNSOL_STK_CC_ALPHA_NOTIFY_I9300I = 1041;
     private static final int RIL_UNSOL_UICC_SUBSCRIPTION_STATUS_CHANGED_I9300I = 11031;
 
-
-
-
-    public NeoDSRIL(Context context, int networkMode, int cdmaSubscription,Integer instanceId) {
-        super(context, networkMode, cdmaSubscription,  instanceId);
+    public NeoDSRIL(Context context, int networkMode, int cdmaSubscription, Integer instanceId) {
+        super(context, networkMode, cdmaSubscription, instanceId);
         mQANElements = 6;
     }
-
 
     @Override
     public void
@@ -174,7 +169,6 @@ public class NeoDSRIL extends RIL implements CommandsInterface {
             appStatus.pin1_replaced  = p.readInt();
             appStatus.pin1           = appStatus.PinStateFromRILInt(p.readInt());
             appStatus.pin2           = appStatus.PinStateFromRILInt(p.readInt());
-            // All subsequent readInt()s added for our device
             p.readInt(); // pin1_num_retries
             p.readInt(); // puk1_num_retries
             p.readInt(); // pin2_num_retries
@@ -206,7 +200,6 @@ public class NeoDSRIL extends RIL implements CommandsInterface {
             dc = new DriverCall();
 
             dc.state = DriverCall.stateFromCLCC(p.readInt());
-            // & 0xff to truncate to 1 byte added for us, not in RIL.java
             dc.index = p.readInt() & 0xff;
             dc.TOA = p.readInt();
             dc.isMpty = (0 != p.readInt());
@@ -214,7 +207,7 @@ public class NeoDSRIL extends RIL implements CommandsInterface {
             dc.als = p.readInt();
             voiceSettings = p.readInt();
             dc.isVoice = (0 != voiceSettings);
-            boolean isVideo = (0 != p.readInt());
+            boolean isVideo = (0 != p.readInt());   // Samsung CallDetails
             int call_type = p.readInt();            // Samsung CallDetails
             int call_domain = p.readInt();          // Samsung CallDetails
             String csv = p.readString();            // Samsung CallDetails
@@ -408,6 +401,7 @@ public class NeoDSRIL extends RIL implements CommandsInterface {
         int dataPosition = p.dataPosition(); // save off position within the Parcel
         int response = p.readInt();
         int newResponse = response;
+		
         switch(response) {
             case RIL_UNSOL_RESPONSE_IMS_NETWORK_STATE_CHANGED:
                 ret = responseVoid(p);

@@ -30,12 +30,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 /**
- * RIL customization for GT-I9301I device
+ * RIL customization for S3 Neo device
  *
  * {@hide}
  */
 public class NeoRIL extends RIL {
-
     private static final int RIL_REQUEST_DIAL_EMERGENCY = 10016;
     private static final int RIL_UNSOL_RESPONSE_IMS_NETWORK_STATE_CHANGED = 1036;
     private static final int RIL_UNSOL_DEVICE_READY_NOTI = 11008;
@@ -60,9 +59,9 @@ public class NeoRIL extends RIL {
 
         rr.mParcel.writeString(address);
         rr.mParcel.writeInt(clirMode);
-        rr.mParcel.writeInt(0);     // CallDetails.call_type
-        rr.mParcel.writeInt(1);     // CallDetails.call_domain
-        rr.mParcel.writeString(""); // CallDetails.getCsvFromExtras
+        rr.mParcel.writeInt(0);         // CallDetails.call_type
+        rr.mParcel.writeInt(1);         // CallDetails.call_domain
+        rr.mParcel.writeString("");     // CallDetails.getCsvFromExtras
 
         if (uusInfo == null) {
             rr.mParcel.writeInt(0); // UUS information is absent
@@ -279,9 +278,10 @@ public class NeoRIL extends RIL {
     private void
     dialEmergencyCall(String address, int clirMode, Message result) {
         RILRequest rr;
+		Rlog.v(RILJ_LOG_TAG, "Emergency dial: " + address);
 
         rr = RILRequest.obtain(RIL_REQUEST_DIAL_EMERGENCY, result);
-        rr.mParcel.writeString(address);
+        rr.mParcel.writeString(address + "/");
         rr.mParcel.writeInt(clirMode);
         rr.mParcel.writeInt(0);        // CallDetails.call_type
         rr.mParcel.writeInt(3);        // CallDetails.call_domain

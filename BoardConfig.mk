@@ -80,8 +80,8 @@ BOARD_KERNEL_PAGESIZE := 2048
 BOARD_KERNEL_SEPARATED_DT := true
 BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x02000000 --tags_offset 0x1e00000
 TARGET_KERNEL_SOURCE := kernel/samsung/s3ve3g
-TARGET_KERNEL_CONFIG := msm8226-sec_defconfig
-TARGET_KERNEL_VARIANT_CONFIG := msm8226-sec_s3ve3g_defconfig
+TARGET_KERNEL_CONFIG := cyanogen-sec_defconfig
+TARGET_KERNEL_VARIANT_CONFIG := msm8226-sec_s3ve3g_eur_defconfig
 
 WLAN_MODULES:
 	mkdir -p $(KERNEL_MODULES_OUT)/pronto
@@ -99,7 +99,6 @@ TARGET_QCOM_MEDIA_VARIANT := caf-new
 
 # NFC
 BOARD_NFC_CHIPSET := pn547
-BOARD_NFC_HAL_SUFFIX := msm8226
 
 # Partitions
 BOARD_FLASH_BLOCK_SIZE := 1024
