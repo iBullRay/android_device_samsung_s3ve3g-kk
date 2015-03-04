@@ -14,10 +14,10 @@
 
 LOCAL_PATH := device/samsung/s3ve3g
 
-$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
-
 # Inherit nfc feature
 $(call inherit-product, device/samsung/s3ve3g/nfc.mk)
+
+$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 
 # Overlay
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
