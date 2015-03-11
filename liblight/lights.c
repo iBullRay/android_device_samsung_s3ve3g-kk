@@ -16,23 +16,18 @@
  */
 
 //#define LOG_NDEBUG 0
+#define LOG_TAG "lights"
 
 #include <cutils/log.h>
-
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
-
 #include <sys/ioctl.h>
 #include <sys/types.h>
-
 #include <hardware/lights.h>
-
-/******************************************************************************/
 
 static pthread_once_t g_init = PTHREAD_ONCE_INIT;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -50,27 +45,25 @@ struct led_config {
 static struct led_config g_leds[3]; // For battery, notifications, and attention.
 static int g_cur_led = -1;          // Presently showing LED of the above.
 
-/**
- * device methods
- */
-
-void init_globals(void)
+void init_g_lock(void)
 {
-    // init the mutex
     pthread_mutex_init(&g_lock, NULL);
 }
 
 static int write_int(char const *path, int value)
 {
     int fd;
-    static int already_warned = 0;
+    static int already_warned;
+
+    already_warned = 0;
 
     ALOGV("write_int: path %s, value %d", path, value);
     fd = open(path, O_RDWR);
+
     if (fd >= 0) {
         char buffer[20];
-        int bytes = sprintf(buffer, sizeof(buffer), "%d\n", value);
-        ssize_t amt = write(fd, buffer, (size_t)bytes);
+        int bytes = sprintf(buffer, "%d\n", value);
+        int amt = write(fd, buffer, bytes);
         close(fd);
         return amt == -1 ? -errno : 0;
     } else {
@@ -81,6 +74,20 @@ static int write_int(char const *path, int value)
         return -errno;
     }
 }
+
+/* Currently unused.
+static int read_int(char const *path)
+{
+    int fd;
+    char buffer[2];
+    fd = open(path, O_RDONLY);
+    if (fd >= 0) {
+        read(fd, buffer, 1);
+    }
+    close(fd);
+    return atoi(buffer);
+}
+*/
 
 static int write_str(char const *path, const char* value)
 {
@@ -105,16 +112,27 @@ static int write_str(char const *path, const char* value)
     }
 }
 
-static int is_lit(struct light_state_t const* state)
-{
-    return state->color & 0x00ffffff;
-}
-
 static int rgb_to_brightness(struct light_state_t const *state)
 {
     int color = state->color & 0x00ffffff;
+
     return ((77*((color>>16) & 0x00ff))
-            + (150*((color>>8) & 0x00ff)) + (29*(color & 0x00ff))) >> 8;
+        + (150*((color>>8) & 0x00ff)) + (29*(color & 0x00ff))) >> 8;
+}
+
+/* Previously used by set_light_leds.
+static int get_calibrated_color(struct light_state_t const *state, int brightness)
+{
+    int red = (state->color >> 16) & 0xFF;
+    int green = ((state->color >> 8) & 0xFF) * 0.7;
+    int blue = (state->color & 0x00FF) * 0.8;
+    return (((red * brightness) / 255) << 16) + (((green * brightness) / 255) << 8) + ((blue * brightness) / 255);
+}
+*/
+
+static int is_lit(struct light_state_t const* state)
+{
+    return state->color & 0x00ffffff;
 }
 
 static int set_light_backlight(struct light_device_t *dev,
@@ -122,8 +140,10 @@ static int set_light_backlight(struct light_device_t *dev,
 {
     int err = 0;
     int brightness = rgb_to_brightness(state);
+
     pthread_mutex_lock(&g_lock);
     err = write_int(PANEL_FILE, brightness);
+
     pthread_mutex_unlock(&g_lock);
     return err;
 }
@@ -134,19 +154,21 @@ set_light_buttons(struct light_device_t* dev,
 {
     int err = 0;
     int on = is_lit(state);
+
     pthread_mutex_lock(&g_lock);
     err = write_int(BUTTON_FILE, on?1:0);
     pthread_mutex_unlock(&g_lock);
+
     return err;
 
 }
 
-/** Close the lights device */
 static int close_lights(struct light_device_t *dev)
 {
-    if (dev) {
+    ALOGV("close_light is called");
+    if (dev)
         free(dev);
-    }
+
     return 0;
 }
 
@@ -285,9 +307,8 @@ static int set_light_leds_attention(struct light_device_t *dev,
     return set_light_leds(&fixed, 2);
 }
 
-/** Open a new instance of a lights device using name */
 static int open_lights(const struct hw_module_t *module, char const *name,
-        struct hw_device_t **device)
+                        struct hw_device_t **device)
 {
     int (*set_light)(struct light_device_t *dev,
         struct light_state_t const *state);
@@ -305,14 +326,10 @@ static int open_lights(const struct hw_module_t *module, char const *name,
     else
         return -EINVAL;
 
-    pthread_once(&g_init, init_globals);
+    pthread_once(&g_init, init_g_lock);
 
     struct light_device_t *dev = malloc(sizeof(struct light_device_t));
-    
-	if(!dev)
-        return -ENOMEM;
-	
-	memset(dev, 0, sizeof(*dev));
+    memset(dev, 0, sizeof(*dev));
 
     dev->common.tag = HARDWARE_DEVICE_TAG;
     dev->common.version = 0;
@@ -321,16 +338,14 @@ static int open_lights(const struct hw_module_t *module, char const *name,
     dev->set_light = set_light;
 
     *device = (struct hw_device_t *)dev;
+
     return 0;
 }
 
 static struct hw_module_methods_t lights_module_methods = {
-    .open = open_lights,
+    .open =  open_lights,
 };
 
-/*
- * The lights Module
- */
 struct hw_module_t HAL_MODULE_INFO_SYM = {
     .tag = HARDWARE_MODULE_TAG,
     .version_major = 1,
